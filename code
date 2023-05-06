@@ -1,0 +1,41 @@
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+import numpy as np
+
+# URL 
+url_format = 'https://www.rightmove.co.uk/property-for-sale/find.html?locationIdentifier=REGION%5E274&index={}&propertyTypes=&includeSSTC=false&mustHave=&dontShow=&furnishTypes=&keywords='
+
+# Page indices to scrape
+pages = np.arange(1, 482, 24)
+
+# Empty list to store the property information
+property_info = []
+
+# Loop through the pages and extract the relevant information
+for page in pages:
+    url = url_format.format(page)
+    response = requests.get(url)
+    content = response.text
+
+    # Create a BeautifulSoup object to parse the HTML content
+    soup = BeautifulSoup(content, 'html.parser')
+    
+    # Find the list of properties on the page
+    property_list = soup.find_all('div', {'class': 'propertyCard-wrapper'})
+    
+    # Loop through the list of properties and extract the relevant information
+    for property in property_list:
+        # Extract the address, price, and date added for each property
+        address = property.find('address', {'class': 'propertyCard-address'}).text.strip()
+        price = property.find('div', {'class': 'propertyCard-priceValue'}).text.strip().replace(',', '')
+        date_added = property.find('span', {'class': 'propertyCard-branchSummary-addedOrReduced'}).text.strip()
+        
+        # Append a dictionary containing the extracted information to the property_info list
+        property_info.append({'Address': address, 'Price': price, 'Date Added': date_added})
+
+# Create a DataFrame from the property_info list
+property_df = pd.DataFrame(property_info, columns=['Address', 'Price', 'Date Added'])
+
+# Print the first few rows of the DataFrame
+property_df.head()
